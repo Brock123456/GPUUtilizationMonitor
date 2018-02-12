@@ -16,7 +16,6 @@ class Program
         //Declaring and initilizing some stuff probaly more stuff then i need
         EmailClass emailClass = new EmailClass();
         LogClass logClass = new LogClass();
-        double dblCountDown;
         string[] strUtilization;
         int intStrikes = 0;
         int intMissing = 0;
@@ -25,28 +24,15 @@ class Program
         string strMsg = "";
         //Get config values from the config file
         getConfig();
-        logClass.Log("Starting process assuming reboot");
-        strMsg = DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - Starting process assuming reboot";
-        //Give user time to read
-        Thread.Sleep(2000);
+        logClass.Log("\r\nStarting process assuming reboot");
         //Send Email starting up
         if (objConfig.SendEmail != "no")
         {
             logClass.Log("\r\nSending Email");
-            strMsg = strMsg + "\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - Sending Email";
             emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
         }
         //Delay checks to give the computer time to get going. Added fancy count down.
-        Console.Clear();
-        dblCountDown = objConfig.Delay;
-        while (dblCountDown > 0)
-        {
-            Console.Write(strMsg + "\r\nStarting GPU utilization monitor in " + objConfig.Delay / 60000 + " minutes! Exit now if there are other issues! \r\n");
-            Console.Write(dblCountDown / 1000 + " second remaning. \r\n");
-            Thread.Sleep(1000);
-            dblCountDown = dblCountDown - 1000;
-            Console.Clear();
-        }
+        CountDown(objConfig.Delay);
         //If startup bat present run it
         if (objConfig.StartBat != "")
         {
@@ -55,7 +41,7 @@ class Program
         }
         if (objConfig.ProdOrTest == "test")
         {
-            logClass.Log("\r\nUsing Test Data");
+            logClass.Log("\r\nUsing Test Data!!!\r\n");
         }
         //Loop till something breaks
         while (!bReboot)
@@ -115,12 +101,7 @@ class Program
             }
 
             //sleep for the set delay
-            dblCountDown = objConfig.Delay;
-            while (dblCountDown > 0)
-            {
-                Thread.Sleep(1000);
-                dblCountDown = dblCountDown - 1000;
-            }
+            CountDown(objConfig.Delay);
         }
         //Send Email something went wrong
         if (objConfig.SendEmail != "no")
@@ -160,7 +141,7 @@ class Program
         //Loop through utilizations to check for issues and to build the message.
         foreach (int i in lintUtilization)
         {
-            if (i < 90)
+            if (i < objConfig.BadCardThreshold)
             {
                 strBad = strBad + " " + i + "%";
             }
@@ -237,24 +218,41 @@ class Program
     //Reads values from the file and puts them in the global object
     public static void getConfig()
     {
-        string strNumberOfGPUS = ConfigurationManager.AppSettings.Get("NumberOfGPUS");
-        string strDelay = ConfigurationManager.AppSettings.Get("Delay");
-        string strToEmailAddress = ConfigurationManager.AppSettings.Get("ToEmailAddress");
-        string strFromEmailAddress = ConfigurationManager.AppSettings.Get("FromEmailAddress");
-        string strFromEmailPassword = ConfigurationManager.AppSettings.Get("FromEmailPassword");
-        string strProdOrTest = ConfigurationManager.AppSettings.Get("ProdOrTest");
-        string strSendEmail = ConfigurationManager.AppSettings.Get("SendEmail");
-        string strComputerStrikes = ConfigurationManager.AppSettings.Get("ComputerStrikes");
-        string strMinerStrikes = ConfigurationManager.AppSettings.Get("MinerStrikes");
-        string strRestartBat = ConfigurationManager.AppSettings.Get("RestartBat");
-        string strStartBat = ConfigurationManager.AppSettings.Get("StartBat");
-        string strRestart = ConfigurationManager.AppSettings.Get("Restart");
-        string strRig = ConfigurationManager.AppSettings.Get("Rig");
-        string strTestUrl = ConfigurationManager.AppSettings.Get("TestUrl");
+        LogClass logClass = new LogClass();
 
+        string strNumberOfGPUS = ConfigurationManager.AppSettings.Get("NumberOfGPUS");
+        logClass.Log("Number of GPUS - " + strNumberOfGPUS);
+        string strDelay = ConfigurationManager.AppSettings.Get("Delay");
+        logClass.Log("Delay between checks - " + strDelay + " minutes");
+        string strToEmailAddress = ConfigurationManager.AppSettings.Get("ToEmailAddress");
+        logClass.Log("Notification to email - " + strToEmailAddress);
+        string strFromEmailAddress = ConfigurationManager.AppSettings.Get("FromEmailAddress");
+        logClass.Log("Notification from email - " + strFromEmailAddress);
+        string strFromEmailPassword = ConfigurationManager.AppSettings.Get("FromEmailPassword");
+        if (strFromEmailPassword != "") { logClass.Log("Notification from email password is Present"); } else { logClass.Log("Notification from email password is Null"); }
+        string strProdOrTest = ConfigurationManager.AppSettings.Get("ProdOrTest");
+        logClass.Log("Prod or Test - " + strProdOrTest);
+        string strSendEmail = ConfigurationManager.AppSettings.Get("SendEmail");
+        logClass.Log("Sending notification emails - " + strSendEmail);
+        string strComputerStrikes = ConfigurationManager.AppSettings.Get("ComputerStrikes");
+        logClass.Log("How many strikes before restarting - " + strComputerStrikes);
+        string strMinerStrikes = ConfigurationManager.AppSettings.Get("MinerStrikes");
+        logClass.Log("How many strikes before executing restart bat - " + strMinerStrikes);
+        string strRestartBat = ConfigurationManager.AppSettings.Get("RestartBat");
+        logClass.Log("Restart bat file - " + strRestartBat);
+        string strStartBat = ConfigurationManager.AppSettings.Get("StartBat");
+        logClass.Log("Start up bat file - " + strStartBat);
+        string strRestart = ConfigurationManager.AppSettings.Get("Restart");
+        logClass.Log("Are we restarting the computer - " + strRestart);
+        string strRig = ConfigurationManager.AppSettings.Get("Rig");
+        logClass.Log("Rig Name - " + strRig);
+        string strTestUrl = ConfigurationManager.AppSettings.Get("TestUrl");
+        logClass.Log("URL to validate internet - " + strTestUrl);
+        string strBadCardThreshold = ConfigurationManager.AppSettings.Get("BadCardThreshold");
+        logClass.Log("Threshold for GPU utilization - " + strBadCardThreshold + "%" );
 
         objConfig.NumberOfGPUS = Int32.Parse(strNumberOfGPUS);
-        objConfig.Delay = double.Parse(strDelay) * 60000;
+        objConfig.Delay = double.Parse(strDelay) * 60;
         objConfig.ComputerStrikes = Int32.Parse(strComputerStrikes);
         //If 0 then disabled set so high it doesn't matter
         if (objConfig.ComputerStrikes == 0) { objConfig.ComputerStrikes = 100000; }
@@ -271,6 +269,7 @@ class Program
         objConfig.ProdOrTest = strProdOrTest;
         objConfig.Rig = strRig;
         objConfig.TestUrl = strTestUrl;
+        objConfig.BadCardThreshold = Int32.Parse(strBadCardThreshold);
     }
     static void ExecuteCommand(string command)
     {
@@ -288,13 +287,7 @@ class Program
             process = Process.Start(processInfo);
             //Don't want to wait for exit incase bat hangs give it two minutes then carry on
             dblCountDown = objConfig.Delay;
-            Console.Write(" \r\nWaiting for bat to finish " + objConfig.Delay / 60000 + " minutes! Exit now if there are other issues! \r\n");
-            Console.Write(dblCountDown / 1000 + " second remaning. \r\n");
-            while (dblCountDown > 0)
-            {
-                Thread.Sleep(1000);
-                dblCountDown = dblCountDown - 1000;
-            }
+            CountDown(objConfig.Delay, "Waiting for " + command + " to have time to finish.");
             process.Close();
         }
         catch (Exception e)
@@ -328,5 +321,20 @@ class Program
         {
             return false;
         }
+    }
+    public static void CountDown(double dblSeconds, string strMessage = "Delaying")
+    {
+        var origRow = Console.CursorTop + 1;
+        string strConsoleMessage = strMessage + " {0}";
+        for (double a = dblSeconds; a >= 0; a--)
+        {
+            Console.SetCursorPosition(0, origRow);
+            Console.Write(strConsoleMessage, a);
+            System.Threading.Thread.Sleep(1000);
+        }
+        Console.SetCursorPosition(0, Console.CursorTop);
+        Console.Write(new string(' ', Console.WindowWidth));
+        Console.SetCursorPosition(0, origRow);
+        Console.SetCursorPosition(0, origRow);
     }
 }

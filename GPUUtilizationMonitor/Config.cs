@@ -15,8 +15,9 @@
     public string Restart { get; set; }
     public string Rig { get; set; }
     public string TestUrl{ get; set;}
+    public int BadCardThreshold{get; set;}
     public Config() { }
-    public Config(int numberofgpus, double delay, int computerstrikes, int minerstrikes, string restartbat, string startbat, string toemailaddress, string fromemailaddress, string fromemailpassword, string prodortest, string sendemail, string restart, string rig, string testurl)
+    public Config(int numberofgpus, double delay, int computerstrikes, int minerstrikes, string restartbat, string startbat, string toemailaddress, string fromemailaddress, string fromemailpassword, string prodortest, string sendemail, string restart, string rig, string testurl, int badcardthreshold)
     {
         NumberOfGPUS = numberofgpus;
         Delay = delay;
@@ -32,6 +33,7 @@
         Restart = restart;
         Rig = rig;
         TestUrl = testurl;
+        BadCardThreshold = badcardthreshold;
     }
     //Other properties, methods, events...
 }
