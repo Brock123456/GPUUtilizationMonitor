@@ -24,11 +24,11 @@ class Program
         string strMsg = "";
         //Get config values from the config file
         getConfig();
-        logClass.Log("\r\nStarting process assuming reboot");
+        logClass.Log("Starting process assuming reboot");
         //Send Email starting up
         if (objConfig.SendEmail != "no")
         {
-            logClass.Log("\r\nSending Email");
+            logClass.Log("Sending Email");
             emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
         }
         //Delay checks to give the computer time to get going. Added fancy count down.
@@ -36,7 +36,7 @@ class Program
         //If startup bat present run it
         if (objConfig.StartBat != "")
         {
-            logClass.Log("\r\nStarting miner command - " + objConfig.StartBat);
+            logClass.Log("Starting miner command - " + objConfig.StartBat);
             ExecuteCommand(objConfig.StartBat);
         }
         if (objConfig.ProdOrTest == "test")
