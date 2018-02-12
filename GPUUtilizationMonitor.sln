@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2026
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPUUtilizationMonitor", "GPUUtilizationMonitor\GPUUtilizationMonitor.csproj", "{F3943A64-7810-4A1B-9AF1-EE4A09A37590}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EF1DCBFA-1790-4000-86D1-E26AEC76169E}"
+	ProjectSection(SolutionItems) = preProject
+		GPUUtilizationMonitor\EmailService.cs = GPUUtilizationMonitor\EmailService.cs
+		GPUUtilizationMonitor\LogService.cs = GPUUtilizationMonitor\LogService.cs
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F3943A64-7810-4A1B-9AF1-EE4A09A37590}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3943A64-7810-4A1B-9AF1-EE4A09A37590}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3943A64-7810-4A1B-9AF1-EE4A09A37590}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3943A64-7810-4A1B-9AF1-EE4A09A37590}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6DC59620-028A-475B-BDFB-8A1155A678EA}
+	EndGlobalSection
+EndGlobal
