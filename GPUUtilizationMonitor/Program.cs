@@ -87,8 +87,12 @@ class Program
                 //If restart bat present execute it
                 if (objConfig.RestartBat != "")
                 {
-                    logClass.Log("\r\nRestarting miner command - " + objConfig.StartBat);
+                    logClass.Log("Restarting miner command - " + objConfig.StartBat);
                     ExecuteCommand(objConfig.RestartBat);
+                }
+                else
+                {
+                    logClass.Log("Miner strike set but no bat file provided!");
                 }
             }
 
@@ -98,7 +102,7 @@ class Program
         //Send Email something went wrong
         if (objConfig.SendEmail != "no")
         {
-            logClass.Log("\r\nSending Email");
+            logClass.Log("Sending Email");
             emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
         }
         //Well crap we made it out time to reboot
@@ -107,16 +111,16 @@ class Program
             //Send Email something went wrong
             if (objConfig.SendEmail != "no")
             {
-                logClass.Log("\r\nSending Email");
+                logClass.Log("Sending Email");
                 emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
             }
-            logClass.Log("\r\nAttemping reboot with force");
+            logClass.Log("Attemping reboot with force");
             strMsg = "-r -f -t 60 -c \"" + strMsg + "\"";
             System.Diagnostics.Process.Start("shutdown.exe", strMsg);
         }
         else
         {
-            logClass.Log("\r\nComputer struck out but reboot is disabled.");
+            logClass.Log("Computer struck out but reboot is disabled.");
             if (objConfig.SendEmail != "no")
             {
                 emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
