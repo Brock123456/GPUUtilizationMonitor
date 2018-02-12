@@ -61,7 +61,7 @@ class Program
             int[] intUtilization = Array.ConvertAll(strUtilization, delegate (string s) { return int.Parse(s); });
             //Make sure all cards are utilized above threshold
             if (checkUtilization(intUtilization, ref strMsg)) { bAddStrike = true; }
-            //Make sure all cards are present don't bother if utilization already counts as a strike
+            //Make sure all cards are present
             else if (intUtilization.Length < objConfig.NumberOfGPUS)
             {
                 bAddStrike = true;
@@ -76,16 +76,8 @@ class Program
             //If error and internet is up count it as strike
             if (bAddStrike)
             {
-                //If testing don't ping a web page a bunch
-                if (objConfig.ProdOrTest != "test")
-                {
-                    //Check for internet connection before looking for strikes. If not internet/pool then no need to try anything.
-                    if (CheckForInternetConnection()) { intStrikes++; }
-                }
-                else
-                {
-                    intStrikes++;
-                }
+                   //Check for internet connection before looking for strikes. If not internet/pool then no need to try anything.
+                    if (CheckForInternetConnection()) { intStrikes++; } else { logClass.Log("Internet check failed strike not counted."); }
             }
             //Check if we need attempt to restart computer
             if (intStrikes >= objConfig.ComputerStrikes) { bReboot = true; }
