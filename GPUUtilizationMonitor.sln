@@ -5,12 +5,6 @@ VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPUUtilizationMonitor", "GPUUtilizationMonitor\GPUUtilizationMonitor.csproj", "{F3943A64-7810-4A1B-9AF1-EE4A09A37590}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EF1DCBFA-1790-4000-86D1-E26AEC76169E}"
-	ProjectSection(SolutionItems) = preProject
-		GPUUtilizationMonitor\EmailService.cs = GPUUtilizationMonitor\EmailService.cs
-		GPUUtilizationMonitor\LogService.cs = GPUUtilizationMonitor\LogService.cs
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Mail;
+using LogService;
 
 namespace EmailService
 {
@@ -30,9 +31,10 @@ namespace EmailService
                 smtp.Send(email);
                 
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                //We tried let it die
+                LogClass logClass = new LogClass();
+                logClass.Log("Error sending email - carring on any ways - " + e);
             }
         }
     }

@@ -6,125 +6,161 @@ using EmailService;
 using LogService;
 using System.Net;
 using System.Configuration;
-
+//Add reference to System.Drawing, System.Configuration, 
 class Program
 {
     public static Config objConfig = new Config(); //Public config obj easier then passing her around
     public static int intTestCount = 0; //Just a global variable for counting test loops please ignore my poor coding standards
     static void Main()
     {
-        //Declaring and initilizing some stuff probaly more stuff then i need
-        EmailClass emailClass = new EmailClass();
-        LogClass logClass = new LogClass();
-        string[] strUtilization;
-        int intStrikes = 0;
-        int intMissing = 0;
-        bool bReboot = false;
-        bool bAddStrike = false;
-        string strMsg = "";
-        //Get config values from the config file
-        getConfig();
-        logClass.Log("Starting process assuming reboot");
-        //Send Email starting up
-        if (objConfig.SendEmail != "no")
+        try
         {
-            logClass.Log("Sending Email");
-            emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
-        }
-        //Delay checks to give the computer time to get going. Added fancy count down.
-        CountDown(objConfig.Delay);
-        //If startup bat present run it
-        if (objConfig.StartBat != "")
-        {
-            logClass.Log("Starting miner command - " + objConfig.StartBat);
-            ExecuteCommand(objConfig.StartBat);
-        }
-        if (objConfig.ProdOrTest == "test")
-        {
-            logClass.Log("\r\nUsing Test Data!!!\r\n");
-        }
-        //Loop till something breaks
-        while (!bReboot)
-        {
-            //Clear message for every loop
-            strMsg = "";
-            //Decide if we are using real values or test values
-            if (objConfig.ProdOrTest != "test")
+            //Declaring and initilizing some stuff probaly more stuff then i need
+            EmailClass emailClass = new EmailClass();
+            LogClass logClass = new LogClass();
+            string[] strUtilization;
+            int intStrikes = 0;
+            int intMissing = 0;
+            bool bReboot = false;
+            bool bAddStrike = false;
+            string strMsg = "";
+            //Get config values from the config file
+            try
             {
-                strUtilization = getUtilization();
+                getConfig();
             }
-            else
+            catch (Exception e)
             {
-                strUtilization = testgetUtilization();
+                logClass.Log("Error loading config. Check config file exiting program - " + e);
+                Environment.Exit(1);
             }
-            //Convert the string utilizations into ints so we can do some math.
-            int[] intUtilization = Array.ConvertAll(strUtilization, delegate (string s) { return int.Parse(s); });
-            //Make sure all cards are utilized above threshold
-            if (checkUtilization(intUtilization, ref strMsg)) { bAddStrike = true; }
-            //Make sure all cards are present
-            else if (intUtilization.Length < objConfig.NumberOfGPUS)
+
+            logClass.Log("Starting process assuming reboot");
+            //Send Email starting up
+            if (objConfig.SendEmail != "no")
             {
-                bAddStrike = true;
-                intMissing = objConfig.NumberOfGPUS - intUtilization.Length;
-                strMsg = strMsg + "\r\nThe Ugly - " + intMissing + " GPUs are missing \r\n";
+                    logClass.Log("Sending Email");
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                
             }
-            //Clean run new batter clear the board
-            else { intStrikes = 0; }
-            //If Error Log int
-            if (strMsg.Contains("Bad") || strMsg.Contains("Ugly")) { logClass.Log(strMsg); }
-            else { Console.Write("\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - " + strMsg); }
-            //If error and internet is up count it as strike
-            if (bAddStrike)
+            //Delay checks to give the computer time to get going. Added fancy count down.
+            CountDown(objConfig.Delay);
+            //If startup bat present run it
+            if (objConfig.StartBat != "")
             {
-                   //Check for internet connection before looking for strikes. If not internet/pool then no need to try anything.
-                    if (CheckForInternetConnection()) { intStrikes++; } else { logClass.Log("Internet check failed strike not counted."); }
-            }
-            //Check if we need attempt to restart computer
-            if (intStrikes >= objConfig.ComputerStrikes) { bReboot = true; }
-            //Check if we need to attempt to restart miner 
-            else if (intStrikes >= objConfig.MinerStrikes)
-            {
-                //If restart bat present execute it
-                if (objConfig.RestartBat != "")
+                try
                 {
-                    logClass.Log("Restarting miner command - " + objConfig.StartBat);
-                    ExecuteCommand(objConfig.RestartBat);
+                    logClass.Log("Starting miner command - " + objConfig.StartBat);
+                    ExecuteCommand(objConfig.StartBat);
+                }
+                catch (Exception e)
+                {
+                    logClass.Log("Error starting miner- attemping notification - " + e);
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to start", "Miner failed to start check log", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                }
+
+            }
+            if (objConfig.ProdOrTest == "test")
+            {
+                logClass.Log("\r\nUsing Test Data!!!\r\n");
+            }
+            //Loop till something breaks
+            while (!bReboot)
+            {
+                //Clear message for every loop
+                strMsg = "";
+                //Decide if we are using real values or test values
+                if (objConfig.ProdOrTest != "test")
+                {
+                    strUtilization = getUtilization();
                 }
                 else
                 {
-                    logClass.Log("Miner strike set but no bat file provided!");
+                    strUtilization = testgetUtilization();
                 }
+                //Convert the string utilizations into ints so we can do some math.
+                int[] intUtilization = Array.ConvertAll(strUtilization, delegate (string s) { return int.Parse(s); });
+                //Make sure all cards are utilized above threshold
+                if (checkUtilization(intUtilization, ref strMsg)) { bAddStrike = true; }
+                //Make sure all cards are present
+                else if (intUtilization.Length < objConfig.NumberOfGPUS)
+                {
+                    bAddStrike = true;
+                    intMissing = objConfig.NumberOfGPUS - intUtilization.Length;
+                    strMsg = strMsg + "\r\nThe Ugly - " + intMissing + " GPUs are missing \r\n";
+                }
+                //Clean run new batter clear the board
+                else { intStrikes = 0; }
+                //If Error Log int
+                if (strMsg.Contains("Bad") || strMsg.Contains("Ugly")) { logClass.Log(strMsg); }
+                else { Console.Write("\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - " + strMsg); }
+                //If error and internet is up count it as strike
+                if (bAddStrike)
+                {
+                    //Check for internet connection before looking for strikes. If not internet/pool then no need to try anything.
+                    if (CheckForInternetConnection()) { intStrikes++; } else { logClass.Log("Internet check failed strike not counted."); }
+                }
+                //Check if we need attempt to restart computer
+                if (intStrikes >= objConfig.ComputerStrikes) { bReboot = true; }
+                //Check if we need to attempt to restart miner 
+                else if (intStrikes >= objConfig.MinerStrikes)
+                {
+                    //If restart bat present execute it
+                    if (objConfig.RestartBat != "")
+                    {
+                        try
+                        {
+                            logClass.Log("Restarting miner command - " + objConfig.StartBat);
+                            ExecuteCommand(objConfig.RestartBat);
+                        }
+                        catch (Exception e)
+                        {
+                            logClass.Log("Error restarting miner- attemping notification - " + e);
+                            emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart check log. Monitoring will continue and computer restart may be attempted if enabled.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                        }
+                    }
+                    else
+                    {
+                        logClass.Log("Miner strike set but no bat file provided!");
+                    }
+                }
+                //Attempt to take screen shots after everything else is done.
+                TakeScreenShots();
+                //sleep for the set delay
+                CountDown(objConfig.Delay);
             }
-
-            //sleep for the set delay
-            CountDown(objConfig.Delay);
-        }
-        //Send Email something went wrong
-        if (objConfig.SendEmail != "no")
-        {
-            logClass.Log("Sending Email");
-            emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
-        }
-        //Well crap we made it out time to reboot
-        if (objConfig.Restart != "no")
-        {
             //Send Email something went wrong
             if (objConfig.SendEmail != "no")
             {
                 logClass.Log("Sending Email");
-                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
             }
-            logClass.Log("Attemping reboot with force");
-            strMsg = "-r -f -t 60 -c \"" + strMsg + "\"";
-            System.Diagnostics.Process.Start("shutdown.exe", strMsg);
-        }
-        else
-        {
-            logClass.Log("Computer struck out but reboot is disabled.");
-            if (objConfig.SendEmail != "no")
+            //Well crap we made it out time to reboot
+            if (objConfig.Restart != "no")
             {
-                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                //Send Email something went wrong
+                if (objConfig.SendEmail != "no")
+                {
+                    logClass.Log("Sending Email");
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                }
+                logClass.Log("Attemping reboot with force");
+                strMsg = "-r -f -t 60 -c \"" + strMsg + "\"";
+                System.Diagnostics.Process.Start("shutdown.exe", strMsg);
             }
+            else
+            {
+                logClass.Log("Computer struck out but reboot is disabled.");
+                if (objConfig.SendEmail != "no")
+                {
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LogClass logClass = new LogClass();
+            logClass.Log("Fatal exception - " + e);
         }
     }
     //Check if utilixation is abouve the threashold
@@ -246,6 +282,10 @@ class Program
         logClass.Log("URL to validate internet - " + strTestUrl);
         string strBadCardThreshold = ConfigurationManager.AppSettings.Get("BadCardThreshold");
         logClass.Log("Threshold for GPU utilization - " + strBadCardThreshold + "%" );
+        string strScreenShotApp = ConfigurationManager.AppSettings.Get("ScreenShotApp");
+        logClass.Log("Screen shot apps - " + strScreenShotApp);
+        string strScreenShotPath = ConfigurationManager.AppSettings.Get("ScreenShotPath");
+        logClass.Log("Path to save screen shots - " + strScreenShotPath);
 
         objConfig.NumberOfGPUS = Int32.Parse(strNumberOfGPUS);
         objConfig.Delay = double.Parse(strDelay) * 60;
@@ -266,6 +306,8 @@ class Program
         objConfig.Rig = strRig;
         objConfig.TestUrl = strTestUrl;
         objConfig.BadCardThreshold = Int32.Parse(strBadCardThreshold);
+        objConfig.ScreenShotApp = strScreenShotApp;
+        objConfig.ScreenShotPath = strScreenShotPath;
     }
     static void ExecuteCommand(string command)
     {
@@ -332,5 +374,22 @@ class Program
         Console.Write(new string(' ', Console.WindowWidth));
         Console.SetCursorPosition(0, origRow);
         Console.SetCursorPosition(0, origRow);
+    }
+    public static void TakeScreenShots()
+    {
+        try
+        {
+            if (objConfig.ScreenShotApp != "" && objConfig.ScreenShotPath != "")
+            {
+                ScreenShotService.ScreenShotClass serviceScreenShot = new ScreenShotService.ScreenShotClass();
+                serviceScreenShot.CaptureApplication(objConfig.ScreenShotApp, objConfig.ScreenShotPath, objConfig.Rig);
+            }
+        }
+        catch (Exception e)
+        {
+            LogClass logClass = new LogClass();
+            logClass.Log("Exception taking screen shots - carring on - " + e);
+        }
+
     }
 }
