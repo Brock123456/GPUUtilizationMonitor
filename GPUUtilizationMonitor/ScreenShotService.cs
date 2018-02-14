@@ -37,7 +37,7 @@ namespace ScreenShotService
                         string filename = path + rig + "_" + procName + ".png";
                         bmp.Save(filename, ImageFormat.Png);
                     }
-                    catch (Exception e)
+                    catch 
                     {
                         //Not logging assuming extra windows are there to catch the diffrent miners.
                         Console.WriteLine("Error taking screen shot of " + errorProcName);

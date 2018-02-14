@@ -6,6 +6,8 @@ using EmailService;
 using LogService;
 using System.Net;
 using System.Configuration;
+using System.Linq;
+using FTPService;
 //Add reference to System.Drawing, System.Configuration, 
 class Program
 {
@@ -24,6 +26,8 @@ class Program
             bool bReboot = false;
             bool bAddStrike = false;
             string strMsg = "";
+            bool bRestartedMiner = false;
+            int intScreenShootLoop = 0;
             //Get config values from the config file
             try
             {
@@ -93,7 +97,7 @@ class Program
                     strMsg = strMsg + "\r\nThe Ugly - " + intMissing + " GPUs are missing \r\n";
                 }
                 //Clean run new batter clear the board
-                else { intStrikes = 0; }
+                else { intStrikes = 0; bRestartedMiner = false; }
                 //If Error Log int
                 if (strMsg.Contains("Bad") || strMsg.Contains("Ugly")) { logClass.Log(strMsg); }
                 else { Console.Write("\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - " + strMsg); }
@@ -113,11 +117,15 @@ class Program
                     {
                         try
                         {
-                            logClass.Log("Restarting miner command - " + objConfig.StartBat);
-                            ExecuteCommand(objConfig.RestartBat);
-                            if (objConfig.SendEmail != "no")
+                            if (!bRestartedMiner)
                             {
-                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Restarting Miner Program", "Restarting Miner Program.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                                bRestartedMiner = true;
+                                logClass.Log("Restarting miner command - " + objConfig.StartBat);
+                                ExecuteCommand(objConfig.RestartBat);
+                                if (objConfig.SendEmail != "no")
+                                {
+                                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Restarting Miner Program", "Restarting Miner Program.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                                }
                             }
                            
                         }
@@ -136,7 +144,15 @@ class Program
                     }
                 }
                 //Attempt to take screen shots after everything else is done.
-                TakeScreenShots();
+                if (intScreenShootLoop == objConfig.ScreenShotLoops && objConfig.ScreenShotLoops > 0)
+                {
+                    intScreenShootLoop = 0;
+                    TakeScreenShots();
+                }
+                else if(objConfig.ScreenShotLoops > 0)
+                {
+                    intScreenShootLoop++;
+                }
                 //sleep for the set delay
                 CountDown(objConfig.Delay);
             }
@@ -262,17 +278,17 @@ class Program
     public static void getConfig()
     {
         LogClass logClass = new LogClass();
-
+        logClass.Log("***Starting Config****");
         string strNumberOfGPUS = ConfigurationManager.AppSettings.Get("NumberOfGPUS");
         logClass.Log("Number of GPUS - " + strNumberOfGPUS);
         string strDelay = ConfigurationManager.AppSettings.Get("Delay");
         logClass.Log("Delay between checks - " + strDelay + " minutes");
         string strToEmailAddress = ConfigurationManager.AppSettings.Get("ToEmailAddress");
-        logClass.Log("Notification to email - " + strToEmailAddress);
+        logClass.Log("Notification to email - " + Mask(strToEmailAddress,2));
         string strFromEmailAddress = ConfigurationManager.AppSettings.Get("FromEmailAddress");
-        logClass.Log("Notification from email - " + strFromEmailAddress);
+        logClass.Log("Notification from email - " + Mask(strFromEmailAddress,2));
         string strFromEmailPassword = ConfigurationManager.AppSettings.Get("FromEmailPassword");
-        if (strFromEmailPassword != "") { logClass.Log("Notification from email password is Present"); } else { logClass.Log("Notification from email password is Null"); }
+        logClass.Log("Notification from email password - " + Mask(strFromEmailPassword));
         string strProdOrTest = ConfigurationManager.AppSettings.Get("ProdOrTest");
         logClass.Log("Prod or Test - " + strProdOrTest);
         string strSendEmail = ConfigurationManager.AppSettings.Get("SendEmail");
@@ -293,10 +309,21 @@ class Program
         logClass.Log("URL to validate internet - " + strTestUrl);
         string strBadCardThreshold = ConfigurationManager.AppSettings.Get("BadCardThreshold");
         logClass.Log("Threshold for GPU utilization - " + strBadCardThreshold + "%" );
-        string strScreenShotApp = ConfigurationManager.AppSettings.Get("ScreenShotApp");
+        string strScreenShotApp = ConfigurationManager.AppSettings.Get("ScreenShotApps");
         logClass.Log("Screen shot apps - " + strScreenShotApp);
         string strScreenShotPath = ConfigurationManager.AppSettings.Get("ScreenShotPath");
         logClass.Log("Path to save screen shots - " + strScreenShotPath);
+        string strScreenShotLoops = ConfigurationManager.AppSettings.Get("ScreenShotLoops");
+        logClass.Log("Take screen shots ever - " + strScreenShotLoops + " loops");
+        string strFTPServer = ConfigurationManager.AppSettings.Get("FTPServer");
+        logClass.Log("FTP Server - " + Mask(strFTPServer));
+        string strFTPUser = ConfigurationManager.AppSettings.Get("FTPUser");
+        logClass.Log("FTP User - " + Mask(strFTPUser,2));
+        string strFTPPassword = ConfigurationManager.AppSettings.Get("FTPPassword");
+        logClass.Log("FTP Password - " + Mask(strFTPPassword));
+        string strFTPFolder = ConfigurationManager.AppSettings.Get("FTPFolder");
+        logClass.Log("FTP Folder - " + strFTPFolder);
+        logClass.Log("***Ending Config****");
 
         objConfig.NumberOfGPUS = Int32.Parse(strNumberOfGPUS);
         objConfig.Delay = double.Parse(strDelay) * 60;
@@ -319,6 +346,11 @@ class Program
         objConfig.BadCardThreshold = Int32.Parse(strBadCardThreshold);
         objConfig.ScreenShotApp = strScreenShotApp;
         objConfig.ScreenShotPath = strScreenShotPath;
+        objConfig.ScreenShotLoops = Int32.Parse(strScreenShotLoops);
+        objConfig.FTPServer = strFTPServer;
+        objConfig.FTPUser = strFTPUser;
+        objConfig.FTPPassword = strFTPPassword;
+        objConfig.FTPFolder = strFTPFolder;
     }
     static void ExecuteCommand(string command)
     {
@@ -388,19 +420,96 @@ class Program
     }
     public static void TakeScreenShots()
     {
+        //Adding metric crap ton of error handling. Dealing with files can be a pia
+        LogClass logClass = new LogClass();
         try
         {
-            if (objConfig.ScreenShotApp != "" && objConfig.ScreenShotPath != "")
+            //If there is some where to save screen shots assume we need to delete old ones first.
+            if (objConfig.ScreenShotPath != "")
             {
-                ScreenShotService.ScreenShotClass serviceScreenShot = new ScreenShotService.ScreenShotClass();
-                serviceScreenShot.CaptureApplication(objConfig.ScreenShotApp, objConfig.ScreenShotPath, objConfig.Rig);
+                //Delete old screen shots
+                DirectoryInfo dir = new DirectoryInfo(@objConfig.ScreenShotPath);
+                FileInfo[] files = dir.GetFiles("*.png")
+                                     .Where(p => p.Extension == ".png").ToArray();
+                foreach (FileInfo file in files)
+                    try
+                    {
+                        file.Attributes = FileAttributes.Normal;
+                        File.Delete(file.FullName);
+                    }
+                    catch (Exception e)
+                    {
+                        logClass.Log("Exception deleting screen shot - carring on - " + e);
+                    }
+
+                //If we have some where to save them and a list of apps to take them of fire away. Class has its own error trapping
+                if (objConfig.ScreenShotApp != "" && objConfig.ScreenShotPath != "")
+                {
+                    ScreenShotService.ScreenShotClass serviceScreenShot = new ScreenShotService.ScreenShotClass();
+                    serviceScreenShot.CaptureApplication(objConfig.ScreenShotApp, objConfig.ScreenShotPath, objConfig.Rig);
+                }
+                //If we have an FTP Server attempt to use it
+                if (objConfig.FTPServer != "")
+                {
+                    try
+                    {
+                        //Attempt to delete the old screen shots in that difrectory
+                        FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
+                        /* Get Contents of a Directory (Names Only) */
+                        string[] simpleDirectoryListing = ftpClient.directoryListDetailed(objConfig.FTPFolder);
+                        for (int i = 0; i < simpleDirectoryListing.Count(); i++)
+                        {
+                            Console.WriteLine(simpleDirectoryListing[i]);
+                            if (simpleDirectoryListing[i].Contains(".png"))
+                            {
+                                ftpClient.delete(objConfig.FTPFolder + simpleDirectoryListing[i]);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        logClass.Log("Exception deleting screen shot in FTP Folder - carring on - " + e);
+                    }
+                }
+                //Upload new screen shots
+                //Reload array with the new screen shots
+                files = dir.GetFiles("*.png")
+                                     .Where(p => p.Extension == ".png").ToArray();
+                foreach (FileInfo file in files)
+                    try
+                    {
+                        FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
+                        ftpClient.upload(objConfig.FTPFolder + file.FullName, @objConfig.ScreenShotPath + file.FullName);
+                    }
+                    catch (Exception e)
+                    {
+                        logClass.Log("Exception uploading screen shot - carring on - " + e);
+                    }
+
             }
         }
         catch (Exception e)
         {
-            LogClass logClass = new LogClass();
             logClass.Log("Exception taking screen shots - carring on - " + e);
         }
 
     }
+    public static string Mask(string strString, int intRemain = 0)
+    {
+        string strWork = "";
+        int intLength = 0;
+        intLength = strString.Length;
+        if (intLength > 0)
+        {
+            strWork = string.Concat(strString.Substring(0,intRemain),
+                    "".PadRight(intLength- intRemain, '*')
+                    );
+        return strWork;
+        }
+        else
+        {
+            return "NULL Value";
+        }
+    }
+
 }
