@@ -56,7 +56,10 @@ class Program
                 catch (Exception e)
                 {
                     logClass.Log("Error starting miner- attemping notification - " + e);
-                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to start", "Miner failed to start check log", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                    if (objConfig.SendEmail != "no")
+                    {
+                        emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to start", "Miner failed to start check log", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                    }
                 }
 
             }
@@ -112,11 +115,19 @@ class Program
                         {
                             logClass.Log("Restarting miner command - " + objConfig.StartBat);
                             ExecuteCommand(objConfig.RestartBat);
+                            if (objConfig.SendEmail != "no")
+                            {
+                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Restarting Miner Program", "Restarting Miner Program.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                            }
+                           
                         }
                         catch (Exception e)
                         {
                             logClass.Log("Error restarting miner- attemping notification - " + e);
-                            emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart check log. Monitoring will continue and computer restart may be attempted if enabled.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                            if (objConfig.SendEmail != "no")
+                            {
+                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart check log. Monitoring will continue and computer restart may be attempted if enabled.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                            }
                         }
                     }
                     else
@@ -363,7 +374,7 @@ class Program
     public static void CountDown(double dblSeconds, string strMessage = "Delaying")
     {
         var origRow = Console.CursorTop + 1;
-        string strConsoleMessage = strMessage + " {0}";
+        string strConsoleMessage = strMessage + " {0000}";
         for (double a = dblSeconds; a >= 0; a--)
         {
             Console.SetCursorPosition(0, origRow);
