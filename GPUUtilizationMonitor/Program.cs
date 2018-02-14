@@ -43,12 +43,14 @@ class Program
             //Send Email starting up
             if (objConfig.SendEmail != "no")
             {
-                    logClass.Log("Sending Email");
-                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                logClass.Log("Sending Email");
+                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                 
             }
             //Delay checks to give the computer time to get going. Added fancy count down.
             CountDown(objConfig.Delay);
+            //Delete old log files
+            logClass.DeleteOldLogs(3);
             //If startup bat present run it
             if (objConfig.StartBat != "")
             {
@@ -97,7 +99,16 @@ class Program
                     strMsg = strMsg + "\r\nThe Ugly - " + intMissing + " GPUs are missing \r\n";
                 }
                 //Clean run new batter clear the board
-                else { intStrikes = 0; bRestartedMiner = false; }
+                else
+                {
+                    //If there was strike log the next good run before clearing the board
+                    if (intStrikes > 0)
+                    {
+                        logClass.Log(strMsg);
+                        intStrikes = 0;
+                    }
+                    bRestartedMiner = false;
+                }
                 //If Error Log int
                 if (strMsg.Contains("Bad") || strMsg.Contains("Ugly")) { logClass.Log(strMsg); }
                 else { Console.Write("\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - " + strMsg); }
@@ -124,7 +135,7 @@ class Program
                                 ExecuteCommand(objConfig.RestartBat);
                                 if (objConfig.SendEmail != "no")
                                 {
-                                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Restarting Miner Program", "Restarting Miner Program.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + " Restarting Miner Program", logClass.returnEvents(5) , objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                                 }
                             }
                            
@@ -134,7 +145,7 @@ class Program
                             logClass.Log("Error restarting miner- attemping notification - " + e);
                             if (objConfig.SendEmail != "no")
                             {
-                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart check log. Monitoring will continue and computer restart may be attempted if enabled.", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart. Monitoring will continue and computer restart may be attempted if enabled.\r\n" + logClass.returnEvents(5), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                             }
                         }
                     }
@@ -156,12 +167,6 @@ class Program
                 //sleep for the set delay
                 CountDown(objConfig.Delay);
             }
-            //Send Email something went wrong
-            if (objConfig.SendEmail != "no")
-            {
-                logClass.Log("Sending Email");
-                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
-            }
             //Well crap we made it out time to reboot
             if (objConfig.Restart != "no")
             {
@@ -169,7 +174,7 @@ class Program
                 if (objConfig.SendEmail != "no")
                 {
                     logClass.Log("Sending Email");
-                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + strMsg, objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + logClass.returnEvents(5), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                 }
                 logClass.Log("Attemping reboot with force");
                 strMsg = "-r -f -t 60 -c \"" + strMsg + "\"";
@@ -180,7 +185,7 @@ class Program
                 logClass.Log("Computer struck out but reboot is disabled.");
                 if (objConfig.SendEmail != "no")
                 {
-                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action to be taken. Stopping monitoring \r\n" + logClass.returnEvents(5), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                 }
             }
         }
