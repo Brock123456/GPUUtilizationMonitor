@@ -27,7 +27,7 @@ class Program
             bool bAddStrike = false;
             string strMsg = "";
             bool bRestartedMiner = false;
-            int intScreenShootLoop = 0;
+            int intScreenShootLoop = -1;
             //Get config values from the config file
             try
             {
@@ -155,7 +155,7 @@ class Program
                     }
                 }
                 //Attempt to take screen shots after everything else is done.
-                if (intScreenShootLoop == objConfig.ScreenShotLoops && objConfig.ScreenShotLoops > 0)
+                if ((intScreenShootLoop == objConfig.ScreenShotLoops && objConfig.ScreenShotLoops > 0) || intScreenShootLoop == -1)
                 {
                     intScreenShootLoop = 0;
                     TakeScreenShots();
@@ -464,10 +464,11 @@ class Program
                         string[] simpleDirectoryListing = ftpClient.directoryListDetailed(objConfig.FTPFolder);
                         for (int i = 0; i < simpleDirectoryListing.Count(); i++)
                         {
-                            Console.WriteLine(simpleDirectoryListing[i]);
                             if (simpleDirectoryListing[i].Contains(".png"))
                             {
-                                ftpClient.delete(objConfig.FTPFolder + simpleDirectoryListing[i]);
+                                string[] tokens = (simpleDirectoryListing[i].Split(new[] { ' ' }, 9, StringSplitOptions.RemoveEmptyEntries));
+                                string filename = tokens[8];
+                                ftpClient.delete(objConfig.FTPFolder + filename);
                             }
                         }
                     }
@@ -484,7 +485,7 @@ class Program
                     try
                     {
                         FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
-                        ftpClient.upload(objConfig.FTPFolder + file.FullName, @objConfig.ScreenShotPath + file.FullName);
+                        ftpClient.upload(objConfig.FTPFolder + file.Name, @file.FullName);
                     }
                     catch (Exception e)
                     {
