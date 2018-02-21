@@ -31,12 +31,12 @@ namespace ScreenShotService
                         bool b = SetForegroundWindow(proc.MainWindowHandle);
                         User32.GetWindowRect(proc.MainWindowHandle, ref rect);
                         width = rect.right - rect.left;
-                        height = rect.bottom - rect.top;
+                        height = rect.bottom - rect.top;                        
 
                         var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
                         Graphics graphics = Graphics.FromImage(bmp);
                         graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
-                        string filename = path + rig + "_" + procName + ".png";
+                        string filename = path + rig + procName + ".png";
                         bmp.Save(filename, ImageFormat.Png);
                     }
                     catch

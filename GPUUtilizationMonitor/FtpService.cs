@@ -85,7 +85,7 @@ namespace FTPService
                 ftpStream = ftpRequest.GetRequestStream();
                 /* Open a File Stream to Read the File for Upload */
                 //FileStream localFileStream = new FileStream(localFile, FileMode.Create);
-                FileStream localFileStream = new FileStream(localFile, FileMode.Open, FileAccess.Read);
+                FileStream localFileStream = new FileStream(localFile, FileMode.Open, FileAccess.ReadWrite);
                 /* Buffer for the Downloaded Data */
                 byte[] byteBuffer = new byte[bufferSize];
                 int bytesSent = localFileStream.Read(byteBuffer, 0, bufferSize);
@@ -263,7 +263,7 @@ namespace FTPService
             /* Return an Empty string Array if an Exception Occurs */
             return "";
         }
-
+        
         /* List Directory Contents File/Folder Name Only */
         public string[] directoryListSimple(string directory)
         {
