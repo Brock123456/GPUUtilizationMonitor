@@ -23,10 +23,12 @@ namespace ScreenShotService
                         var rect = new User32.Rect();
                         User32.GetWindowRect(proc.MainWindowHandle, ref rect);
 
+                        User32.MoveWindow(proc.MainWindowHandle, 0, 0, 1000, 1000, true);
                         int width = rect.right - rect.left;
                         int height = rect.bottom - rect.top;
-                        //ScreenShotClass.MoveWindow(proc.MainWindowHandle, 0, 0, width, height, true);
-                        bool b = SetForegroundWindow(proc.MainWindowHandle);
+                        System.Threading.Thread.Sleep(1000);
+                        bool b = User32.SetForegroundWindow(proc.MainWindowHandle);
+                        System.Threading.Thread.Sleep(1000);
                         User32.GetWindowRect(proc.MainWindowHandle, ref rect);
                         width = rect.right - rect.left;
                         height = rect.bottom - rect.top;                        
@@ -36,20 +38,17 @@ namespace ScreenShotService
                         graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
                         string filename = path + rig + procName + ".png";
                         bmp.Save(filename, ImageFormat.Png);
+                        System.Threading.Thread.Sleep(2000);
+                        Console.WriteLine(errorProcName + " is open. Screen shot taken.");
                     }
                     catch 
                     {
                         //Not logging assuming extra windows are there to catch the diffrent miners.
-                        Console.WriteLine("Error taking screen shot of " + errorProcName);
+                        Console.WriteLine(errorProcName + " is not open.");
                     }
                 }
             }
         }
-        [DllImport("USER32.DLL")]
-        public static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
 
     }
     class User32
@@ -66,6 +65,11 @@ namespace ScreenShotService
         [DllImport("user32.dll")]
         public static extern IntPtr GetWindowRect(IntPtr hWnd, ref Rect rect);
 
+        [DllImport("USER32.DLL")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
     }
 }
 

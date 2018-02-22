@@ -28,6 +28,7 @@ class Program
             string strMsg = "";
             bool bRestartedMiner = false;
             int intScreenShootLoop = -1;
+            int intEvents = 10;
             //Get config values from the config file
             try
             {
@@ -107,11 +108,15 @@ class Program
                         logClass.Log(strMsg);
                         intStrikes = 0;
                     }
+                    else
+                    {
+                        Console.Write("\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - " + strMsg);
+
+                    }
                     bRestartedMiner = false;
                 }
                 //If Error Log int
-                if (strMsg.Contains("Bad") || strMsg.Contains("Ugly")) { logClass.Log(strMsg); }
-                else { Console.Write("\r\n" + DateTime.Now.ToString("MM/dd/yyyy h:mm:ss tt") + " - " + strMsg); }
+                if (strMsg.Contains("Bad") || strMsg.Contains("Ugly")) { logClass.Log(strMsg); }                
                 //If error and internet is up count it as strike
                 if (bAddStrike)
                 {
@@ -135,7 +140,7 @@ class Program
                                 ExecuteCommand(objConfig.RestartBat);
                                 if (objConfig.SendEmail != "no")
                                 {
-                                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + " Restarting Miner Program", logClass.returnEvents(5) , objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + " Restarting Miner Program", logClass.returnEvents(intEvents) , objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                                 }
                             }
                            
@@ -145,7 +150,7 @@ class Program
                             logClass.Log("Error restarting miner- attemping notification - " + e);
                             if (objConfig.SendEmail != "no")
                             {
-                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart. Monitoring will continue and computer restart may be attempted if enabled.\r\n" + logClass.returnEvents(5), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                                emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart. Monitoring will continue and computer restart may be attempted if enabled.\r\n" + logClass.returnEvents(intEvents), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                             }
                         }
                     }
@@ -174,7 +179,7 @@ class Program
                 if (objConfig.SendEmail != "no")
                 {
                     logClass.Log("Sending Email");
-                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + logClass.returnEvents(5), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out rebooting", "Rebooting\r\n" + logClass.returnEvents(intEvents), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                 }
                 logClass.Log("Attemping reboot with force");
                 strMsg = "-r -f -t 60 -c \"" + strMsg + "\"";
@@ -185,7 +190,7 @@ class Program
                 logClass.Log("Computer struck out but reboot is disabled.");
                 if (objConfig.SendEmail != "no")
                 {
-                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action to be taken. Stopping monitoring \r\n" + logClass.returnEvents(5), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
+                    emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "struck out", "Reboot is diabled taking no farther action to be taken. Stopping monitoring \r\n" + logClass.returnEvents(intEvents), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                 }
             }
         }
@@ -441,6 +446,7 @@ class Program
                     {
                         file.Attributes = FileAttributes.Normal;
                         File.Delete(file.FullName);
+                        System.Threading.Thread.Sleep(1000);
                     }
                     catch (Exception e)
                     {
@@ -469,6 +475,7 @@ class Program
                                 string[] tokens = (simpleDirectoryListing[i].Split(new[] { ' ' }, 9, StringSplitOptions.RemoveEmptyEntries));
                                 string filename = tokens[8];
                                 ftpClient.delete(objConfig.FTPFolder + filename);
+                                System.Threading.Thread.Sleep(1000);
                             }
                         }
                     }
@@ -486,6 +493,7 @@ class Program
                     {
                         FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
                         ftpClient.upload(objConfig.FTPFolder + file.Name, @file.FullName);
+                        System.Threading.Thread.Sleep(2000);
                     }
                     catch (Exception e)
                     {
