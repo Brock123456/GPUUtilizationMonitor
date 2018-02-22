@@ -8,7 +8,8 @@ using System.Net;
 using System.Configuration;
 using System.Linq;
 using FTPService;
-//Add reference to System.Drawing, System.Configuration, 
+
+//Add reference to System.Drawing, System.Configuration,  System.Windows.Forms
 class Program
 {
     public static Config objConfig = new Config(); //Public config obj easier then passing her around
@@ -39,17 +40,15 @@ class Program
                 logClass.Log("Error loading config. Check config file exiting program - " + e);
                 Environment.Exit(1);
             }
-
-            logClass.Log("Starting process assuming reboot");
+            logClass.Log("Starting process assuming reboot because I don't feel like checking.");
             //Send Email starting up
             if (objConfig.SendEmail != "no")
             {
                 logClass.Log("Sending Email");
                 emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Monitoring is starting", "Monitoring is starting", objConfig.FromEmailAddress, objConfig.FromEmailPassword);
-                
             }
-            //Delay checks to give the computer time to get going. Added fancy count down.
-            CountDown(objConfig.Delay);
+            //Half a delay checks to give the computer time to get going. Added fancy count down.
+            CountDown(objConfig.Delay/2);
             //Delete old log files
             logClass.DeleteOldLogs(3);
             //If startup bat present run it
@@ -137,17 +136,18 @@ class Program
                             {
                                 bRestartedMiner = true;
                                 logClass.Log("Restarting miner command - " + objConfig.StartBat);
+                                actionLog();
                                 ExecuteCommand(objConfig.RestartBat);
                                 if (objConfig.SendEmail != "no")
                                 {
                                     emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + " Restarting Miner Program", logClass.returnEvents(intEvents) , objConfig.FromEmailAddress, objConfig.FromEmailPassword);
                                 }
                             }
-                           
+
                         }
                         catch (Exception e)
                         {
-                            logClass.Log("Error restarting miner- attemping notification - " + e);
+                            logClass.Log("Error - attemping notification if enabled - " + e);
                             if (objConfig.SendEmail != "no")
                             {
                                 emailClass.SendEmail(objConfig.ToEmailAddress, "GPU Utilization Monitor - " + objConfig.Rig + "Miner failed to restart", "Miner failed to restart. Monitoring will continue and computer restart may be attempted if enabled.\r\n" + logClass.returnEvents(intEvents), objConfig.FromEmailAddress, objConfig.FromEmailPassword);
@@ -159,20 +159,12 @@ class Program
                         logClass.Log("Miner strike set but no bat file provided!");
                     }
                 }
-                //Attempt to take screen shots after everything else is done.
-                if ((intScreenShootLoop == objConfig.ScreenShotLoops && objConfig.ScreenShotLoops > 0) || intScreenShootLoop == -1)
-                {
-                    intScreenShootLoop = 0;
-                    TakeScreenShots();
-                }
-                else if(objConfig.ScreenShotLoops > 0)
-                {
-                    intScreenShootLoop++;
-                }
+                
                 //sleep for the set delay
                 CountDown(objConfig.Delay);
             }
             //Well crap we made it out time to reboot
+            actionLog();
             if (objConfig.Restart != "no")
             {
                 //Send Email something went wrong
@@ -284,6 +276,40 @@ class Program
         }
         return lines;
     }
+    //Copy pasted from somewhere lost source but why it looks way nicer then my code
+    public static string getCardDetails()
+    {   //
+        // Setup the process with the ProcessStartInfo class.
+        //
+        String result = "";
+        ProcessStartInfo start = new ProcessStartInfo();
+        start.FileName = @"""C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe"""; // Specify exe name.
+        start.Arguments = " --query-gpu=timestamp,name,pci.bus_id,driver_version,pstate,pcie.link.gen.max, pcie.link.gen.current,temperature.gpu,utilization.gpu,utilization.memory, memory.total,memory.free,memory.used--format = csv - l 5";
+        start.UseShellExecute = false;
+        start.RedirectStandardOutput = true;
+        //
+        // Start the process.
+        //
+        if (objConfig.ProdOrTest != "test")
+        {
+            using (Process process = Process.Start(start))
+            {
+                //
+                // Read in all the text from the process with the StreamReader.
+                //
+                using (StreamReader reader = process.StandardOutput)
+                {
+                    result = reader.ReadToEnd();
+                }
+            }
+
+            return result;
+        }
+        else
+        {
+            return "Not a reall crash cause we be testin";
+        }
+    }
     //Reads values from the file and puts them in the global object
     public static void getConfig()
     {
@@ -294,9 +320,9 @@ class Program
         string strDelay = ConfigurationManager.AppSettings.Get("Delay");
         logClass.Log("Delay between checks - " + strDelay + " minutes");
         string strToEmailAddress = ConfigurationManager.AppSettings.Get("ToEmailAddress");
-        logClass.Log("Notification to email - " + Mask(strToEmailAddress,2));
+        logClass.Log("Notification to email - " + Mask(strToEmailAddress, 2));
         string strFromEmailAddress = ConfigurationManager.AppSettings.Get("FromEmailAddress");
-        logClass.Log("Notification from email - " + Mask(strFromEmailAddress,2));
+        logClass.Log("Notification from email - " + Mask(strFromEmailAddress, 2));
         string strFromEmailPassword = ConfigurationManager.AppSettings.Get("FromEmailPassword");
         logClass.Log("Notification from email password - " + Mask(strFromEmailPassword));
         string strProdOrTest = ConfigurationManager.AppSettings.Get("ProdOrTest");
@@ -318,7 +344,7 @@ class Program
         string strTestUrl = ConfigurationManager.AppSettings.Get("TestUrl");
         logClass.Log("URL to validate internet - " + strTestUrl);
         string strBadCardThreshold = ConfigurationManager.AppSettings.Get("BadCardThreshold");
-        logClass.Log("Threshold for GPU utilization - " + strBadCardThreshold + "%" );
+        logClass.Log("Threshold for GPU utilization - " + strBadCardThreshold + "%");
         string strScreenShotApp = ConfigurationManager.AppSettings.Get("ScreenShotApps");
         logClass.Log("Screen shot apps - " + strScreenShotApp);
         string strScreenShotPath = ConfigurationManager.AppSettings.Get("ScreenShotPath");
@@ -328,7 +354,7 @@ class Program
         string strFTPServer = ConfigurationManager.AppSettings.Get("FTPServer");
         logClass.Log("FTP Server - " + Mask(strFTPServer));
         string strFTPUser = ConfigurationManager.AppSettings.Get("FTPUser");
-        logClass.Log("FTP User - " + Mask(strFTPUser,2));
+        logClass.Log("FTP User - " + Mask(strFTPUser, 2));
         string strFTPPassword = ConfigurationManager.AppSettings.Get("FTPPassword");
         logClass.Log("FTP Password - " + Mask(strFTPPassword));
         string strFTPFolder = ConfigurationManager.AppSettings.Get("FTPFolder");
@@ -367,7 +393,6 @@ class Program
         //Execute in new CMD window incase of error or hang
         try
         {
-            double dblCountDown = 0;
             //Setup command
             ProcessStartInfo processInfo;
             Process process;
@@ -377,8 +402,7 @@ class Program
             //Execute command
             process = Process.Start(processInfo);
             //Don't want to wait for exit incase bat hangs give it two minutes then carry on
-            dblCountDown = objConfig.Delay;
-            CountDown(objConfig.Delay, "Waiting for " + command + " to have time to finish.");
+            CountDown(objConfig.Delay/2, "Waiting for half a delay period for " + command + " to have time to finish.");
             process.Close();
         }
         catch (Exception e)
@@ -415,12 +439,14 @@ class Program
     }
     public static void CountDown(double dblSeconds, string strMessage = "Delaying")
     {
+        string s = "";        
         var origRow = Console.CursorTop + 1;
-        string strConsoleMessage = strMessage + " {0000}";
+        string strConsoleMessage = strMessage + " {0}";
         for (double a = dblSeconds; a >= 0; a--)
         {
             Console.SetCursorPosition(0, origRow);
-            Console.Write(strConsoleMessage, a);
+            s = a.ToString();
+            Console.Write(strConsoleMessage, s.PadLeft(4,'0'));
             System.Threading.Thread.Sleep(1000);
         }
         Console.SetCursorPosition(0, Console.CursorTop);
@@ -446,7 +472,6 @@ class Program
                     {
                         file.Attributes = FileAttributes.Normal;
                         File.Delete(file.FullName);
-                        System.Threading.Thread.Sleep(1000);
                     }
                     catch (Exception e)
                     {
@@ -475,7 +500,6 @@ class Program
                                 string[] tokens = (simpleDirectoryListing[i].Split(new[] { ' ' }, 9, StringSplitOptions.RemoveEmptyEntries));
                                 string filename = tokens[8];
                                 ftpClient.delete(objConfig.FTPFolder + filename);
-                                System.Threading.Thread.Sleep(1000);
                             }
                         }
                     }
@@ -493,7 +517,6 @@ class Program
                     {
                         FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
                         ftpClient.upload(objConfig.FTPFolder + file.Name, @file.FullName);
-                        System.Threading.Thread.Sleep(2000);
                     }
                     catch (Exception e)
                     {
@@ -515,15 +538,23 @@ class Program
         intLength = strString.Length;
         if (intLength > 0)
         {
-            strWork = string.Concat(strString.Substring(0,intRemain),
-                    "".PadRight(intLength- intRemain, '*')
+            strWork = string.Concat(strString.Substring(0, intRemain),
+                    "".PadRight(intLength - intRemain, '*')
                     );
-        return strWork;
+            return strWork;
         }
         else
         {
             return "NULL Value";
         }
     }
-
+    public static void actionLog()
+    {
+        LogClass logClass = new LogClass();
+        string strMSG = "";
+        ScreenShotService.ScreenShotClass serviceScreenShot = new ScreenShotService.ScreenShotClass();
+        serviceScreenShot.CaptureScreen(objConfig.ScreenShotPath);
+        strMSG = "Logging addtional card infomation. \r\n" + getCardDetails();
+        logClass.Log(strMSG);         
+    }
 }
