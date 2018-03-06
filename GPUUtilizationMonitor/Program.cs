@@ -6,8 +6,6 @@ using EmailService;
 using LogService;
 using System.Net;
 using System.Configuration;
-using System.Linq;
-using FTPService;
 
 //Add reference to System.Drawing, System.Configuration,  System.Windows.Forms
 class Program
@@ -28,7 +26,6 @@ class Program
             bool bAddStrike = false;
             string strMsg = "";
             bool bRestartedMiner = false;
-            int intScreenShootLoop = -1;
             int intEvents = 10;
             //Get config values from the config file
             try
@@ -345,20 +342,9 @@ class Program
         logClass.Log("URL to validate internet - " + strTestUrl);
         string strBadCardThreshold = ConfigurationManager.AppSettings.Get("BadCardThreshold");
         logClass.Log("Threshold for GPU utilization - " + strBadCardThreshold + "%");
-        string strScreenShotApp = ConfigurationManager.AppSettings.Get("ScreenShotApps");
-        logClass.Log("Screen shot apps - " + strScreenShotApp);
         string strScreenShotPath = ConfigurationManager.AppSettings.Get("ScreenShotPath");
         logClass.Log("Path to save screen shots - " + strScreenShotPath);
         string strScreenShotLoops = ConfigurationManager.AppSettings.Get("ScreenShotLoops");
-        logClass.Log("Take screen shots ever - " + strScreenShotLoops + " loops");
-        string strFTPServer = ConfigurationManager.AppSettings.Get("FTPServer");
-        logClass.Log("FTP Server - " + Mask(strFTPServer));
-        string strFTPUser = ConfigurationManager.AppSettings.Get("FTPUser");
-        logClass.Log("FTP User - " + Mask(strFTPUser, 2));
-        string strFTPPassword = ConfigurationManager.AppSettings.Get("FTPPassword");
-        logClass.Log("FTP Password - " + Mask(strFTPPassword));
-        string strFTPFolder = ConfigurationManager.AppSettings.Get("FTPFolder");
-        logClass.Log("FTP Folder - " + strFTPFolder);
         logClass.Log("***Ending Config****");
 
         objConfig.NumberOfGPUS = Int32.Parse(strNumberOfGPUS);
@@ -380,13 +366,7 @@ class Program
         objConfig.Rig = strRig;
         objConfig.TestUrl = strTestUrl;
         objConfig.BadCardThreshold = Int32.Parse(strBadCardThreshold);
-        objConfig.ScreenShotApp = strScreenShotApp;
         objConfig.ScreenShotPath = strScreenShotPath;
-        objConfig.ScreenShotLoops = Int32.Parse(strScreenShotLoops);
-        objConfig.FTPServer = strFTPServer;
-        objConfig.FTPUser = strFTPUser;
-        objConfig.FTPPassword = strFTPPassword;
-        objConfig.FTPFolder = strFTPFolder;
     }
     static void ExecuteCommand(string command)
     {
@@ -453,83 +433,6 @@ class Program
         Console.Write(new string(' ', Console.WindowWidth));
         Console.SetCursorPosition(0, origRow);
         Console.SetCursorPosition(0, origRow);
-    }
-    public static void TakeScreenShots()
-    {
-        //Adding metric crap ton of error handling. Dealing with files can be a pia
-        LogClass logClass = new LogClass();
-        try
-        {
-            //If there is some where to save screen shots assume we need to delete old ones first.
-            if (objConfig.ScreenShotPath != "")
-            {
-                //Delete old screen shots
-                DirectoryInfo dir = new DirectoryInfo(@objConfig.ScreenShotPath);
-                FileInfo[] files = dir.GetFiles("*.png")
-                                     .Where(p => p.Extension == ".png").ToArray();
-                foreach (FileInfo file in files)
-                    try
-                    {
-                        file.Attributes = FileAttributes.Normal;
-                        File.Delete(file.FullName);
-                    }
-                    catch (Exception e)
-                    {
-                        logClass.Log("Exception deleting screen shot - carring on - " + e);
-                    }
-
-                //If we have some where to save them and a list of apps to take them of fire away. Class has its own error trapping
-                if (objConfig.ScreenShotApp != "" && objConfig.ScreenShotPath != "")
-                {
-                    ScreenShotService.ScreenShotClass serviceScreenShot = new ScreenShotService.ScreenShotClass();
-                    serviceScreenShot.CaptureApplication(objConfig.ScreenShotApp, objConfig.ScreenShotPath, objConfig.Rig);
-                }
-                //If we have an FTP Server attempt to use it
-                if (objConfig.FTPServer != "")
-                {
-                    try
-                    {
-                        //Attempt to delete the old screen shots in that difrectory
-                        FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
-                        /* Get Contents of a Directory (Names Only) */
-                        string[] simpleDirectoryListing = ftpClient.directoryListDetailed(objConfig.FTPFolder);
-                        for (int i = 0; i < simpleDirectoryListing.Count(); i++)
-                        {
-                            if (simpleDirectoryListing[i].Contains(".png"))
-                            {
-                                string[] tokens = (simpleDirectoryListing[i].Split(new[] { ' ' }, 9, StringSplitOptions.RemoveEmptyEntries));
-                                string filename = tokens[8];
-                                ftpClient.delete(objConfig.FTPFolder + filename);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        logClass.Log("Exception deleting screen shot in FTP Folder - carring on - " + e);
-                    }
-                }
-                //Upload new screen shots
-                //Reload array with the new screen shots
-                files = dir.GetFiles("*.png")
-                                     .Where(p => p.Extension == ".png").ToArray();
-                foreach (FileInfo file in files)
-                    try
-                    {
-                        FTPClass ftpClient = new FTPClass(objConfig.FTPServer, objConfig.FTPUser, objConfig.FTPPassword);
-                        ftpClient.upload(objConfig.FTPFolder + file.Name, @file.FullName);
-                    }
-                    catch (Exception e)
-                    {
-                        logClass.Log("Exception uploading screen shot - carring on - " + e);
-                    }
-
-            }
-        }
-        catch (Exception e)
-        {
-            logClass.Log("Exception taking screen shots - carring on - " + e);
-        }
-
     }
     public static string Mask(string strString, int intRemain = 0)
     {

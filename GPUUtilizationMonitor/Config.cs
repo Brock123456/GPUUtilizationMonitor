@@ -16,17 +16,19 @@
     public string Rig { get; set; }
     public string TestUrl{ get; set;}
     public int BadCardThreshold{get; set; }
-    public string ScreenShotApp { get; set; }
     public string ScreenShotPath { get; set; }
-    public int ScreenShotLoops { get; set; }
     public string FTPServer { get; set; }
     public string FTPUser { get; set; }
     public string FTPPassword { get; set; }
     public string FTPFolder { get; set; }
+    public int UpdateLoops { get; set; }
+    public string LogPath { get; set; }
+    public string LogDevider { get; set; }
+    public int NumberofDeviders { get; set; }
     public Config() { }
     public Config(int numberofgpus, double delay, int computerstrikes, int minerstrikes, string restartbat, string startbat, string toemailaddress,
         string fromemailaddress, string fromemailpassword, string prodortest, string sendemail, string restart, string rig, string testurl, int badcardthreshold,
-        string screenshotapp, string screenshotpath, int screenshotloops,string ftpserver,string ftpuser,string ftppassword,string ftpfolder)
+        string screenshotpath)
     {
         NumberOfGPUS = numberofgpus;
         Delay = delay;
@@ -43,13 +45,7 @@
         Rig = rig;
         TestUrl = testurl;
         BadCardThreshold = badcardthreshold;
-        ScreenShotApp = screenshotapp;
         ScreenShotPath = screenshotpath;
-        ScreenShotLoops = screenshotloops;
-        FTPServer = ftpserver;
-        FTPUser = ftpuser;
-        FTPPassword = ftppassword;
-        FTPFolder = ftpfolder;
     }
     //Other properties, methods, events...
 }

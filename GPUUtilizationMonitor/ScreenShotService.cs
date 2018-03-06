@@ -10,44 +10,6 @@ namespace ScreenShotService
 {
     public class ScreenShotClass
     {
-        public static string errorProcName = "";
-        public void CaptureApplication(string processes, string path, string rig)
-        {
-            if (processes != "" && path != "")
-            {
-                String[] spiltNames = processes.Split(',');
-                foreach (string procName in spiltNames)
-                {
-                    try
-                    {
-                        errorProcName = procName;
-                        var proc = Process.GetProcessesByName(procName)[0];
-                        var rect = new User32.Rect();
-                        User32.GetWindowRect(proc.MainWindowHandle, ref rect);
-
-                        int width = rect.right - rect.left;
-                        int height = rect.bottom - rect.top;
-                        //ScreenShotClass.MoveWindow(proc.MainWindowHandle, 0, 0, width, height, true);
-                        bool b = SetForegroundWindow(proc.MainWindowHandle);
-                        User32.GetWindowRect(proc.MainWindowHandle, ref rect);
-                        width = rect.right - rect.left;
-                        height = rect.bottom - rect.top;                        
-
-                        var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-                        Graphics graphics = Graphics.FromImage(bmp);
-                        graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
-                        string filename = path + rig + procName + ".png";
-                        bmp.Save(filename, ImageFormat.Png);
-                    }
-                    catch
-                    {
-                        //Not logging assuming extra windows are there to catch the diffrent miners.
-                        Console.WriteLine("Error taking screen shot of " + errorProcName);
-                    }
-                }
-            }
-        }
-
         public void CaptureScreen(string path)
         {
             try

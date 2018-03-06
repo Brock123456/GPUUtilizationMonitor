@@ -63,7 +63,6 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="EmailService.cs" />
-    <Compile Include="FtpService.cs" />
     <Compile Include="LogService.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
